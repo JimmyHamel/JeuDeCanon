@@ -1,0 +1,42 @@
+package interfaces;
+
+import java.util.ArrayList;
+import java.util.EventListener;
+
+import objetsDessinable.Ennemies;
+import objetsDessinable.Ressort;
+
+/**
+ * Cet écouteur personnalisé permet de générer des ennemis, des ressorts et la physique du Joueur lorsqu'indiqué dans une classe. 
+ * 
+ * @author Mitchell Mastromonaco
+ * Date de création: 1 avril 2016
+ */
+public interface GenerationListener extends EventListener{
+	/**
+	 * 
+	 * 
+	 * @param ennemies
+	 */
+	public void ennemiesGeneration(ArrayList<Ennemies> ennemies);
+	/**
+	 * 
+	 * @param ressortGauche
+	 * @param ressortDroit
+	 */
+	public void ressortsGeneration(Ressort ressortGauche, Ressort ressortDroit);
+	/**
+	 * 
+	 * @param massTank
+	 * @param largeurTank
+	 * @param hautTank
+	 * @param forceMov
+	 * @param coeffSol
+	 * @param massVAir
+	 * @param g
+	 * @param forceMax
+	 * @param massBall
+	 * @param coeffAir
+	 */
+	public void playerPhysicsGeneration(double massTank, double largeurTank, double hautTank, double forceMov, double coeffSol, double massVAir, double g, double forceMax, double massBall, double coeffAir);
+}

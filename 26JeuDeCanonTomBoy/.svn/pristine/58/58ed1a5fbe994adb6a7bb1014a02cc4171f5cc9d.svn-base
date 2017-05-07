@@ -1,0 +1,98 @@
+package interfaces;
+
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.EventListener;
+
+import utilite.Profil;
+/**
+ * 
+ * @author Mitchell
+ *
+ */
+public interface PhysicsListener extends EventListener{
+	/**
+	 * 
+	 * @param tankSpeed
+	 */
+	public void checkTankSpeed(double tankSpeed);
+	/**
+	 * 
+	 * @param bulletSpeedY
+	 */
+	public void checkBulletSpeedY(double bulletSpeedY);
+	/**
+	 * 
+	 * @param bulletSpeedX
+	 */
+	public void checkBulletSpeedX(double bulletSpeedX);
+	/**
+	 * 
+	 * @param bulletSpeedTotal
+	 */
+	public void checkBulletSpeedTotal(double bulletSpeedTotal);
+	/**
+	 * 
+	 * @param accelMagneticX
+	 */
+	public void checkAccelMagneticX(double accelMagneticX);
+	/**
+	 * 
+	 * @param accelMagneticY
+	 */
+	public void checkAccelMagneticY(double accelMagneticY);
+	/**
+	 * 
+	 * @param accelMagneticTotal
+	 */
+	public void checkAccelMagneticTotal(double accelMagneticTotal);
+	/**
+	 * 
+	 * @param forceMagneticX
+	 */
+	public void checkForceMagneticX(double forceMagneticX);
+	/**
+	 * 
+	 * @param forceMagneticY
+	 */
+	public void checkForceMagneticY(double forceMagneticY);
+	/**
+	 * 
+	 * @param ForceMagneticTotal
+	 */
+	public void checkForceMagneticTotal(double ForceMagneticTotal);
+	/**
+	 * 
+	 * @param accelGravita
+	 */
+	public void accelGravitationelle(double accelGravita);
+	/**
+	 * 
+	 * @param frictionAir
+	 */
+	public void forceFrictionAir(double frictionAir);
+	/**
+	 * 
+	 * @param running
+	 */
+	public void isRunning(boolean running);
+	/**
+	 * 
+	 * @param profil
+	 */
+	public void profilAdded(Profil profil);
+	/**
+	 * 
+	 * @param reussite
+	 */
+	public void fin(String reussite);
+	/**
+	 * 
+	 * @param points
+	 */
+	public void positionBalle(ArrayList<Point2D.Double> points);
+	
+
+	
+
+}

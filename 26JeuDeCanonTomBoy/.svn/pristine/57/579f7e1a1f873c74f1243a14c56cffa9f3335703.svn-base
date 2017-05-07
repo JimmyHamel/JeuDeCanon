@@ -1,0 +1,826 @@
+package objetsDessinable;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import interfaces.Dessinable;
+import utilite.ModelePhysique;
+
+/**
+ * Classe étant un objet dessinnable. Elle permet de dessiner un niveau
+ * contenant des limites, un joueur et plusieur ennemies.
+ * 
+ * @author Jimmy Hamel
+ * Date de création : 8 février 2016
+ */
+public class Niveaux implements Dessinable {
+	private Joueur player;
+	private ArrayList<Ennemies> ennemies = new ArrayList<Ennemies>();
+	private double g = 9.8;
+	private final int INDICE_SOL = 0; // indice de la position du sol dans le
+	// tableau de limite
+	private final int INDICE_MUR_GAUCHE = 1; // indice de la position du mur
+	// gauche dans le tableau de
+	// limite
+	private final int INDICE_MUR_DROITE = 2; // indice de la position du mur
+	// droite dans le tableau de
+	// limite
+	private final int INDICE_PLAFOND = 3;
+	private Rectangle2D.Double MUR_GAUCHE;
+	private Rectangle2D.Double MUR_DROITE;
+	private Rectangle2D.Double PLAFOND;
+	private Rectangle2D.Double SOL;
+	private Ressort ressortDroit, ressortGauche;
+	private double omega = 10, amplitude = 5, phiDroit = Math.PI / 2, phiGauche = 3 * Math.PI / 2, force = 150;
+	private double deltaT = 0.02;
+	private final double LARGEUR_MUR = 5;
+	private Rectangle2D.Double[] listeLimites;
+	private double longueurEnnemies = 10;
+	private double hauteurEnnemies = 5;
+	private double longueurJoueur = 5;
+	private double largeurJoueur = 5;
+	private double vitesseEnnemies = 0.5;
+	private double longueurMonde, hauteurMonde;
+	private boolean euler = false, eulerI = false, rk4 = true;
+	private String nomNiveau;
+	private boolean reussite, echec;
+	private ArrayList<String> text = new ArrayList<String>();
+	private final int TICK_TIME_FOR_TEXT = 125;
+	private int currentTickTimeForText = 1, posYTextPixels = 50, posXTextPixels = 50;
+	private Font fText = new Font("Serif", Font.PLAIN, 15);
+	private Color colorWall;
+	private Rectangle2D.Double objetMagnetique;
+	private boolean isMagneticObjetIn;
+
+	/**
+	 * Constructeur des objets niveaux ayant en paramètre la longueur et la
+	 * hauteur du monde physique. Appele la méthode
+	 * creerRepresentationGeometrique qui créé initialise tout les composant
+	 * d'un objet niveau
+	 * 
+	 * @param longueurMonde
+	 *            = longueur du monde physique
+	 * @param hauteurMonde
+	 *            = hauteur du monde physique
+	 * @param g
+	 *            = constante gravitationelle du niveau
+	 */
+
+	public Niveaux(double longueurMonde, double hauteurMonde, double g, double coefTraine, double masseAir, int qualite,
+			double champMagnetique, double chargeEnnemie, String nom) {
+		this.player = new Joueur(20, 5.0, this.longueurJoueur, this.largeurJoueur, coefTraine, masseAir, qualite,
+				champMagnetique, chargeEnnemie);
+
+		this.nomNiveau = nom;
+		this.longueurMonde = longueurMonde;
+		this.hauteurMonde = hauteurMonde;
+		this.g = g;
+		creerRepresentationGeometrique();
+		Rectangle2D.Double[] limitesTemp = { SOL, MUR_GAUCHE, MUR_DROITE, PLAFOND };
+		this.listeLimites = limitesTemp;
+
+		this.reussite = false;
+		this.echec = false;
+
+	}
+
+	/**
+	 * Methode dessinant un niveaux dans le g2d donc cela dessine tous les
+	 * ennemies, les limites et le joueur.
+	 * 
+	 * @param g2d
+	 *            = composant graphique
+	 * @param mat
+	 *            = matrice de transformation du monde physique
+	 */
+	public void dessiner(Graphics2D g2d, AffineTransform mat) {
+		Color couleurAvant = g2d.getColor();
+		player.dessiner(g2d, mat);
+		Iterator<Ennemies> it = this.ennemies.iterator();
+		while (it.hasNext())
+			it.next().dessiner(g2d, mat);
+		g2d.setColor(colorWall);
+		for (Rectangle2D.Double limite : this.listeLimites)
+			g2d.fill(mat.createTransformedShape(limite));
+		Iterator<String> it2 = this.text.iterator();
+		if(it2.hasNext()){
+			String temp = it2.next();
+			g2d.setColor(Color.RED);
+			Font fontAvant = g2d.getFont();
+			g2d.setFont(this.fText);
+			g2d.drawString(temp, this.posXTextPixels, this.posYTextPixels);
+			g2d.setFont(fontAvant);
+			this.currentTickTimeForText++;
+			if(currentTickTimeForText%this.TICK_TIME_FOR_TEXT == 0)
+				text.remove(temp);
+		}
+
+		g2d.setColor(Color.BLACK);
+		ressortDroit.dessiner(g2d, mat);
+		ressortGauche.dessiner(g2d, mat);
+		g2d.setColor(couleurAvant);
+		if(this.isMagneticObjetIn){
+			couleurAvant = g2d.getColor();
+			g2d.setColor(Color.DARK_GRAY);
+			g2d.fill(mat.createTransformedShape(this.objetMagnetique));
+			g2d.setColor(couleurAvant);
+
+		}
+	}
+
+	/**
+	 * Methode appelant la methode de mouvement du joueur dépendant du mouvement
+	 * appelé
+	 * 
+	 * @param mouvement
+	 *            = direction du mouvement
+	 */
+
+	public void mouvementJoueur(String mouvement) {
+		if (eulerI)
+			this.player.eulerI(g, deltaT, mouvement);
+		else if (euler)
+			this.player.euler(g, deltaT, mouvement);
+		else if (rk4)
+			this.player.rk4(g, deltaT, mouvement);
+	}
+
+	/**
+	 * Méthode appelant la methode de mouvement de tous les ennemies dépendant
+	 * de la longueur et de la largeur du monde physique
+	 * 
+	 * @param longueurMonde
+	 *            = longueur du monde physique
+	 * @param largeurMonde
+	 *            = largeur du monde physiuqe
+	 */
+	public void mouvementEnemies(double longueurMonde, double largeurMonde) {
+		Iterator<Ennemies> it = this.ennemies.iterator();
+		while (it.hasNext())
+			it.next().move(longueurMonde - this.LARGEUR_MUR * 2, largeurMonde, this.LARGEUR_MUR, this.deltaT);
+	}
+
+	//Mitchell
+	/**
+	 * Initialise tous les composant dessinables d'un objet niveau dont le
+	 * joueur, les ennemies et les limites.
+	 */
+
+	@Override
+	public void creerRepresentationGeometrique() {
+		switch(nomNiveau){
+		case "niveau_1":
+			colorWall = Color.CYAN;
+
+			Ennemies ennemie1lv1 = new Ennemies(15, 100, longueurEnnemies, hauteurEnnemies, "simple", vitesseEnnemies, player, Color.GREEN);
+			Ennemies ennemie2lv1 = new Ennemies(40, 100, longueurEnnemies, hauteurEnnemies, "simple", vitesseEnnemies, player, Color.GREEN);
+			this.ennemies.add(ennemie1lv1);
+			this.ennemies.add(ennemie2lv1);
+
+			String firstTextlv1 = "Commençons par quelque chose de facile.";
+			String secondTextlv1 = "Vu que vous n'êtes pas très bon, un petit tutoriel...";
+			String thirdTextlv1 = "Soyez meilleur.";
+			String fourthTextlv1 = "Sérieusement, bougez le canon avec a et d ou cliquez sur l'écran et bougez avec la souris.";
+			String fifthTextlv1 = "Enfoncez la touche espace pour tirer.";
+			String sixthTextlv1 = "Détruisez la balle en cliquant dessus.";
+			String seventhTextlv1 = "Déplacez-vous avec les touches de direction.";
+			String eigthTextlv1 = "Même le singe trouvait ce niveau facile...";
+
+			this.text.add(firstTextlv1);
+			this.text.add(secondTextlv1);
+			this.text.add(thirdTextlv1);
+			this.text.add(fourthTextlv1);
+			this.text.add(fifthTextlv1);
+			this.text.add(sixthTextlv1);
+			this.text.add(seventhTextlv1);
+			this.text.add(eigthTextlv1);
+			break;
+		case "niveau_2":
+			colorWall = Color.CYAN;
+
+			for(int i = 1; i<4;i++){
+				ennemies.add(new Ennemies(i*15, i*15 + 50, longueurEnnemies, hauteurEnnemies, "simple", vitesseEnnemies, player, Color.GREEN));
+			}
+
+			String firstTextlv2 = "Doublons le nombre d'ennemies.";
+			String secondTextlv2 = "Si vous vous en êtiez pas rendu compte,";
+			String thirdTextlv2 = "Vous perdez si un ennemi vous touche.";
+			String fourthTextlv2 = "Vous gagnez en détruisant tous les ennemis.";
+
+			this.text.add(firstTextlv2);
+			this.text.add(secondTextlv2);
+			this.text.add(thirdTextlv2);
+			this.text.add(fourthTextlv2);
+			break;
+		case "niveau_3":
+			colorWall = Color.CYAN;
+
+			for(int i = 1; i<4;i++){
+				ennemies.add(new Ennemies(i*16 + this.LARGEUR_MUR, hauteurMonde/5 * 4, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies, player, Color.GREEN));
+				ennemies.add(new Ennemies(i*16 + this.LARGEUR_MUR, hauteurMonde/5 * 3, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies, player, Color.GREEN));
+				ennemies.add(new Ennemies(i*16 + this.LARGEUR_MUR, hauteurMonde/5 * 2, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies, player, Color.GREEN));
+			}
+
+			String firstTextlv3 = "Voyons si vous avez une moindre particule de talent.";
+			String secondTextlv3 = "En ce moment, vous êtes sur Terre.";
+			String thirdTextlv3 = "Au cas où vous voudriez le savoir.";
+			String fourthTextlv3 = "Les deux boîtes de chaque côté de vous sont des ressorts.";
+			String fifthTextlv3 = "Ils vous empêchent de tomber dans le néant.";
+
+			this.text.add(firstTextlv3);
+			this.text.add(secondTextlv3);
+			this.text.add(thirdTextlv3);
+			this.text.add(fourthTextlv3);
+			this.text.add(fifthTextlv3);
+			break;
+		case "niveau_4":
+			colorWall = Color.CYAN;
+
+			Ennemies ennemie1lv4 = new Ennemies(this.LARGEUR_MUR*2, this.hauteurMonde - this.LARGEUR_MUR*2, longueurEnnemies, hauteurEnnemies, "lessSimple", vitesseEnnemies, player, Color.CYAN.darker());
+			ennemies.add(ennemie1lv4);
+			for(int i = 1; i<4;i++){
+				ennemies.add(new Ennemies(i*16 + this.LARGEUR_MUR, hauteurMonde/5 * 4, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies, player, Color.GREEN));
+				ennemies.add(new Ennemies(i*16 + this.LARGEUR_MUR, hauteurMonde/5 * 3, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies, player, Color.GREEN));
+				ennemies.add(new Ennemies(i*16 + this.LARGEUR_MUR, hauteurMonde/5 * 2, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies, player, Color.GREEN));
+			}
+
+			String firstTextlv4 = "Voici le petit nouveau.";
+			String secondTextlv4 = "Ses balles sont tout autant mortelles que lui-même.";
+			String thirdTextlv4 = "Le singe a commencé à avoir de la difficulté à ce niveau.";
+
+			this.text.add(firstTextlv4);
+			this.text.add(secondTextlv4);
+			this.text.add(thirdTextlv4);
+			break;
+		case "niveau_5":
+			colorWall = Color.CYAN;
+
+			for(int i =1; i<4; i++){
+				for(int k = 2; k<=4;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()), player, Color.GREEN));
+					}
+				}
+			}
+
+			String firstTextlv5 = "Pas de génération aléatoire.";
+			String secondTextlv5 = "La technique est quelque chose qui doit être mémorisé.";
+
+			this.text.add(firstTextlv5);
+			this.text.add(secondTextlv5);
+			break;
+		case "niveau_6": //VOici le niveau ou on change de planète.
+			colorWall = Color.LIGHT_GRAY;
+
+
+			for(int i =1; i<4; i++){
+				for(int k = 2; k<=5;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/6 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/6 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()), player, Color.GREEN));
+					}
+				}
+			}
+
+			String firstTextlv6 ="Nous voilà sur Vénus.";
+			String secondTextlv6 = "Un petit conseil: votre balle ira plus vite.";
+			String thirdTextlv6 = "Donc, anticipez mieux vos tirs.";
+
+			this.text.add(firstTextlv6);
+			this.text.add(secondTextlv6);
+			this.text.add(thirdTextlv6);
+			break;
+		case "niveau_7":
+			colorWall = Color.LIGHT_GRAY;
+
+			for(int i =1; i<5; i++){
+				for(int k = 2; k<=5;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/6 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/6 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()), player, Color.GREEN));
+					}
+				}
+			}
+
+			String firstTextlv7 = "Le singe n'a pas été capable de battre ce niveau.";
+			String secondTextlv7 = "Nous pensons vous appeler Ben.";
+			String thirdTextlv7 = "Ben Cave.";
+
+			this.text.add(firstTextlv7);
+			this.text.add(secondTextlv7);
+			this.text.add(thirdTextlv7);
+			break;
+		case "niveau_8":
+			colorWall = Color.LIGHT_GRAY;
+
+			for(int i =1; i<5; i++){
+				for(int k = 2; k<=5;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/6 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/6 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()), player, Color.GREEN));
+					}
+				}
+			}
+			ennemies.add(new Ennemies(this.longueurMonde/2,  hauteurMonde-this.LARGEUR_MUR - hauteurEnnemies, longueurEnnemies/2, hauteurEnnemies/2, "gitgud", vitesseEnnemies+(Math.random()), player, Color.YELLOW));
+
+			String firstTextlv8 = "Un ennemi sauvage est apparu!";
+			String secondTextlv8 = "Ben, nous pensons qu'il vous tuera.";
+			String thirdTextlv8 = "Cependant, j'ai misé contre vous, donc mourrez.";
+
+			this.text.add(firstTextlv8);
+			this.text.add(secondTextlv8);
+			this.text.add(thirdTextlv8);
+			break;
+		case "niveau_9":
+			colorWall = Color.LIGHT_GRAY;
+
+			for(int i =1; i<5; i++){
+				for(int k = 2; k<=4;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()), player, Color.GREEN));
+					}
+				}
+			}
+			for(int i = 1; i<=2; i++){
+				ennemies.add(new Ennemies(this.longueurMonde/3 * i,  hauteurMonde-this.LARGEUR_MUR - hauteurEnnemies, longueurEnnemies/2, hauteurEnnemies/2, "gitgud", vitesseEnnemies+(Math.random()), player, Color.YELLOW));
+			}
+
+			break;
+		case "niveau_10":
+			colorWall = Color.LIGHT_GRAY;
+
+			for(int i =1; i<5; i++){
+				for(int k = 2; k<=4;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()), player, Color.GREEN));
+					}
+				}
+			}
+			for(int i = 1; i<=3; i++){
+				ennemies.add(new Ennemies(this.longueurMonde/4 * i,  hauteurMonde-this.LARGEUR_MUR - hauteurEnnemies, longueurEnnemies/2, hauteurEnnemies/2, "gitgud", vitesseEnnemies+(Math.random()), player, Color.YELLOW));
+			}
+
+			String firstTextlv10 = "Voici le dernier niveau facile!";
+			String secondTextlv10 = "Nous vous souhaitons bonne chance après ce point-ci.";
+
+			this.text.add(firstTextlv10);
+			this.text.add(secondTextlv10);
+			break;
+		case "niveau_11":
+			colorWall = new Color(255,218,185);
+
+			for(int i =1; i<5; i++){
+				for(int k = 2; k<=4;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()*1.5), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "simple", vitesseEnnemies+(Math.random()*1.5), player, Color.GREEN));
+					}
+				}
+			}
+			for(int i = 1; i<=3; i++){
+				ennemies.add(new Ennemies(this.longueurMonde/4 * i,  hauteurMonde-this.LARGEUR_MUR - hauteurEnnemies, longueurEnnemies/2, hauteurEnnemies/2, "gitgud", vitesseEnnemies+(Math.random()*1.5), player, Color.YELLOW));
+			}
+
+			String firstTextlv11 = "Nos servants aiment Jupiter.";
+			String secondTextlv11 = "Donc ils y sont plus rapides.";
+
+			this.text.add(firstTextlv11);
+			this.text.add(secondTextlv11);
+			break;
+		case "niveau_12":
+			colorWall = new Color(255,218,185);
+
+			ennemies.add(new Ennemies(this.longueurMonde/2,  hauteurMonde/2, longueurEnnemies/2, hauteurEnnemies/2, "smart", vitesseEnnemies+(Math.random()*1.5), player, Color.BLACK));
+
+			String firstTextlv12 = "Cependant, un seul servant natif de cette planète";
+			String secondTextlv12 = "sera plus que suffisant pour vous détruire.";
+
+			this.text.add(firstTextlv12);
+			this.text.add(secondTextlv12);
+			break;
+		case "niveau_13":
+			colorWall = new Color(255,218,185);
+
+			ennemies.add(new Ennemies(this.longueurMonde/2,  hauteurMonde/2, longueurEnnemies/2, hauteurEnnemies/2, "smart", vitesseEnnemies+(Math.random()*1.5), player, Color.BLACK));
+
+			for(int i = 1; i<=4; i++){
+				ennemies.add(new Ennemies(this.longueurMonde/5 * i,  hauteurMonde-this.LARGEUR_MUR - hauteurEnnemies, longueurEnnemies/2, hauteurEnnemies/2, "gitgud", vitesseEnnemies+(Math.random()*1.5), player, Color.YELLOW));
+			}
+
+			String firstTextlv13 = "Exceptionnel!";
+			String secondTextlv13 = "Ajoutons de la difficulté.";
+
+			this.text.add(firstTextlv13);
+			this.text.add(secondTextlv13);
+			break;
+		case "niveau_14":
+			colorWall = new Color(255,218,185);
+
+			ennemies.add(new Ennemies(this.longueurMonde/2,  hauteurMonde/2, longueurEnnemies/2, hauteurEnnemies/2, "smart", vitesseEnnemies+(Math.random()*1.5), player, Color.BLACK));
+
+			for(int i =1; i<5; i++){
+				for(int k = 2; k<=4;k++){
+					int choice = (int) (Math.random()*2);
+					if (choice == 0){
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "lessSimple", vitesseEnnemies+(Math.random()*1.5), player, Color.CYAN.darker()));
+					}else{
+						ennemies.add(new Ennemies(i*16+longueurEnnemies,  hauteurMonde/5 * k, longueurEnnemies/2, hauteurEnnemies/2, "medium", vitesseEnnemies+(Math.random()*1.5), player, Color.RED));
+					}
+				}
+			}
+
+			for(int i = 1; i<=4; i++){
+				ennemies.add(new Ennemies(this.longueurMonde/5 * i,  hauteurMonde-this.LARGEUR_MUR - hauteurEnnemies, longueurEnnemies/2, hauteurEnnemies/2, "gitgud", vitesseEnnemies+(Math.random()*1.5), player, Color.YELLOW));
+			}
+
+			String firstTextlv14 = "Finissons-en!";
+
+			this.text.add(firstTextlv14);
+			break;
+
+		default:
+			colorWall = Color.CYAN;
+			break;
+
+		}
+
+		ressortGauche = new Ressort(LARGEUR_MUR, LARGEUR_MUR, amplitude, LARGEUR_MUR, this.omega, this.phiGauche,
+				this.force, "left");
+		ressortDroit = new Ressort(longueurMonde - LARGEUR_MUR - amplitude, LARGEUR_MUR, amplitude, LARGEUR_MUR,
+				this.omega, this.phiDroit, this.force, "right");
+
+		SOL = new Rectangle2D.Double(0, 0, longueurMonde, LARGEUR_MUR);
+		MUR_GAUCHE = new Rectangle2D.Double(0, 0, LARGEUR_MUR, hauteurMonde);
+		MUR_DROITE = new Rectangle2D.Double(longueurMonde - LARGEUR_MUR, 0, LARGEUR_MUR, hauteurMonde);
+		PLAFOND = new Rectangle2D.Double(0, hauteurMonde - LARGEUR_MUR, longueurMonde, LARGEUR_MUR);
+	}
+
+	/**
+	 * Méthode retournant l'attribue joueur de cette classe
+	 * 
+	 * @return = joueur de cette classe
+	 */
+	public Joueur getPlayer() {
+		return player;
+	}
+
+	/**
+	 * Méthode testant les colision entre la balle et entre toute autre surface
+	 * possible
+	 */
+	public void testCollision() {
+		if (player.isShooting()) {
+			Area balleArea = new Area(player.getBalle().getCircle());
+
+			if (balleArea.intersects(this.listeLimites[INDICE_SOL])) {
+				player.setShooting(false);
+				player.resetBalle();
+			} else if (balleArea.intersects(this.listeLimites[INDICE_MUR_GAUCHE])
+					|| balleArea.intersects(this.listeLimites[INDICE_MUR_DROITE]))
+				player.setSpeedBallX(-player.getSpeedBallX());
+
+			else if (balleArea.intersects(this.listeLimites[INDICE_PLAFOND]))
+				player.setSpeedBallY(-player.getSpeedBallY());
+			else
+				verifieCollisionEnnemies(balleArea);
+		}
+		Area playerArea = new Area(this.player.getBoiteDeCollision());
+
+		if (playerArea.intersects(this.ressortGauche.getBoiteDeCollision())) {
+			this.player.setSpeedTank(this.ressortGauche.forceRessort(this.deltaT, this.player.getSpeedTank()));
+		}
+
+		if (playerArea.intersects(this.ressortDroit.getBoiteDeCollision())) {
+			this.player.setSpeedTank(this.ressortDroit.forceRessort(this.deltaT, this.player.getSpeedTank()));
+		}
+
+		if (this.player.getBalle().getPosX() < this.LARGEUR_MUR)
+			this.player.getBalle().setPosX(this.LARGEUR_MUR + 1);
+
+		if (this.player.getBalle().getPosX() + this.player.getBalle().getRayon() > this.longueurMonde
+				- this.LARGEUR_MUR)
+			this.player.getBalle()
+			.setPosX(this.longueurMonde - this.largeurJoueur - this.player.getBalle().getRayon() - 1);
+
+		if (this.player.getBalle().getPosY() + this.player.getBalle().getRayon() > this.hauteurMonde - this.LARGEUR_MUR)
+			this.player.getBalle()
+			.setPosY(this.hauteurMonde - this.LARGEUR_MUR - this.player.getBalle().getRayon() - 1);
+
+		if (this.ennemies.size() == 0 && !this.nomNiveau.equals("niveau_editable"))
+			this.reussite = true;
+
+		if(this.isMagneticObjetIn){
+			if(this.player.getBoiteDeCollision().intersects(this.objetMagnetique)){
+				setMagnetismeRandomly();
+				this.isMagneticObjetIn = false;
+			}
+		}
+
+		verifierSiPerdu(playerArea);
+		verifierCollisionBalleJoueur();
+
+
+	}
+	/**
+	 * Methode placant un champ magnetique sur un ennemie aleatoire
+	 */
+	private void setMagnetismeRandomly() {
+		if(!this.ennemies.isEmpty()){
+			int posEnnemie = (int)(Math.random() * this.ennemies.size());
+			this.ennemies.get(posEnnemie).setCouleur(Color.BLUE);
+			this.player.setMagnetisme(this.ennemies.get(posEnnemie), true);
+		}
+	}
+
+	/**
+	 * methode verifiant si une balle d'un ennemie touche le joueur
+	 */
+	private void verifierCollisionBalleJoueur() {
+		Iterator<Ennemies> it = this.ennemies.iterator();
+		while(it.hasNext()){
+			Ennemies ennemieTemp = it.next();
+
+			if(ennemieTemp.isShooting()){
+				Area balleArea = new Area(ennemieTemp.getBullet().getCircle());
+				if(balleArea.intersects(this.player.getBoiteDeCollision()))
+					this.echec = true;
+			}
+		}
+
+	}
+
+	/**
+	 * verifie si le joueur se fait toucher par un ennemie
+	 * @param playerArea = aire du joueur
+	 */
+	private void verifierSiPerdu(Area playerArea) {
+		Iterator<Ennemies> it = this.ennemies.iterator();
+
+		while (it.hasNext()) {
+			if (playerArea.intersects(it.next().getBoiteDeCollision()))
+				this.echec = true;
+		}
+
+	}
+
+	/**
+	 * Méthode qui verifie si la balle a fait une colision avec un ennemie S'il
+	 * y a collision, l'ennemie touché sera éliminéé ( retiré de la liste
+	 * d'ennemie) Cette méthode sera appelé par la méthode testCollision() de
+	 * cette même classe.
+	 * 
+	 * @param balleArea
+	 */
+	private void verifieCollisionEnnemies(Area balleArea) {
+		Iterator<Ennemies> it = this.ennemies.iterator();
+		boolean collision = false;
+		Ennemies ennemieTemp = null;
+		while (it.hasNext() && !collision) {
+			ennemieTemp = it.next();
+			if (balleArea.intersects(ennemieTemp.getBoiteDeCollision())) {
+				collision = true;
+				if (ennemieTemp.equals(player.getEnnemieMagnetique()))
+					player.setMagnetisme(null, false);
+				this.ennemies.remove(ennemieTemp);
+			}
+		}
+		if (collision) {
+			effetCollisionEnnemie(ennemieTemp);
+		}
+
+	}
+
+	/**
+	 * Methode effectuant une transformation a la direction de la vitesse de la balle
+	 * apres une collision avec un ennemie
+	 * @param ennemie = ennemie 
+	 */
+	private void effetCollisionEnnemie(Ennemies ennemie) {
+		Bullet balle = this.player.getBalle();
+
+		double rayonXGauche = Math.abs(balle.getPosX() + balle.getRayon() - ennemie.getPosX());
+		double rayonXDroit = Math.abs(ennemie.getPosX() + ennemie.getLongueurReelle() - balle.getPosX());
+		double rayonYHaut = Math.abs(ennemie.getPosY() + ennemie.getLargeurReelle() - balle.getPosY());
+		double rayonYBas = Math.abs(balle.getPosY() + balle.getRayon() - ennemie.getPosY());
+
+		if ((rayonXGauche < rayonYHaut && rayonXGauche < rayonYBas)
+				|| (rayonXDroit < rayonYHaut && rayonXDroit < rayonYBas))
+			this.player.setSpeedBallX(-this.player.getSpeedBallX());
+		else
+			this.player.setSpeedBallY(-this.player.getSpeedBallY());
+
+	}
+
+	/**
+	 * Méthode permettant de vérifié si l'utilisateur click sur un ennemie. Si
+	 * c'est le cas, lennemie changera de couleur et sera magnétisé.
+	 * 
+	 * @param x
+	 *            = Position du click en x
+	 * @param y
+	 *            = Position du click en y
+	 * @param model
+	 *            = modèle physique du monde physique
+	 */
+	public void clickHandler(int x, int y, ModelePhysique model) {
+		//		if (!this.player.isMagneticOn()) {
+		//			Iterator<Ennemies> it = this.ennemies.iterator();
+
+		//			while (it.hasNext()) {
+		//				Ennemies temp = it.next();
+		//				if (temp.getBoiteDeCollision().contains(x / model.getPixelsParUniteX(),
+		//						model.getHautUnitesReelles() - y / model.getPixelsParUniteY())) {
+		//					this.player.setMagnetisme(temp, true);
+		//					temp.setCouleur(Color.BLUE);
+		//				}
+		//
+		//			}
+		//		}
+
+		if (player.isShooting()) {
+			if (player.getBalle().getCircle().contains(x / model.getPixelsParUniteX(),
+					model.getHautUnitesReelles() - y / model.getPixelsParUniteY())) {
+				player.resetBalle();
+			}
+		}
+	}
+
+	// Mitchell Mastromonaco
+	/**
+	 * Methode permettant de modifier la methode de calcul d'itération physique
+	 * 
+	 * @param euler
+	 *            = utiliser ou non la méthode d'euler
+	 * @param eulerI
+	 *            = utiliser ou non la méthode d'euler inverse
+	 * @param rk4
+	 *            = utiliser ou non la méthode de rk4
+	 */
+
+	public void changeCalcul(boolean euler, boolean eulerI, boolean rk4) {
+		this.euler = euler;
+		this.eulerI = eulerI;
+		this.rk4 = rk4;
+	}
+
+	/**
+	 * methode retournant le nom du niveau courant
+	 * 
+	 * @return = le nom du niveau courant
+	 */
+
+	public String getNomNiveau() {
+		return this.nomNiveau;
+	}
+	
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode fixant la liste d'ennemies
+	 * 
+	 * @param ennemies un ArrayList d'ennemies
+	 */
+	public void setEnnemies(ArrayList<Ennemies> ennemies) {
+		this.ennemies = ennemies;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode retournant la valeur de la constante gravitationelle en m/s<sup>2</sup>
+	 * 
+	 * @return La valeur de la constante gravitationelle en m/s<sup>2</sup>
+	 */
+	public double getG() {
+		return g;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode fixant la valeur de la constante gravitationelle en m/s<sup>2</sup>
+	 * 
+	 * @return La valeur de la constante gravitationelle en m/s<sup>2</sup>
+	 */
+	public void setG(double g) {
+		this.g = g;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode retournant la largeur des limites de l'aire de jeu en m.
+	 * 
+	 * @return La largeur des limites de l'aire de jeu en m.
+	 */
+	public double getLARGEUR_MUR() {
+		return LARGEUR_MUR;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode retournant la constante de phase du ressort de gauche en rad.
+	 * 
+	 * @return La constante de phase en rad.
+	 */
+	public double getPhiGauche() {
+		return phiGauche;
+	}
+	
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode retournant la constante de phase du ressort de droite en rad.
+	 * 
+	 * @return La constante de phase en rad.
+	 */
+	public double getPhiDroit() {
+		return phiDroit;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode qui change les deus ressorts aux extrémités de l'aire de jeu pour les deux ressorts passés en paramètre.
+	 * 
+	 * @param ressortGauche Le ressort situé à gauche de l'écran.
+	 * @param ressortDroit Le ressort situé à droite de l'écran.
+	 */
+	public void setRessort(Ressort ressortGauche, Ressort ressortDroit) {
+		this.ressortDroit = ressortDroit;
+		this.ressortGauche = ressortGauche;
+	}
+
+	/**
+	 * Methode retournant la valeur boolean correspondant a si le joueur à reussie le niveau
+	 * @return = true si le joueur a reussie
+	 */
+	public boolean isReussite() {
+		return reussite;
+	}
+
+	/**
+	 * Methode retournant la valeur boolean corrrespomt à si le joueur a perdu au jeu ou pas
+	 * @return = true si le joueur a perdu, false sinon.
+	 */
+	public boolean isEchec() {
+		return echec;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode retournant la différence de temps en s.
+	 * 
+	 * @return La différence de temps pour chaque itération en s.
+	 */
+	public double getDeltaT() {
+		return deltaT;
+	}
+
+	//Mitchell Mastromonaco
+	/**
+	 * Méthode fixant la différence de temps en s.
+	 * 
+	 * @param deltaT La différence de temps pour chaque itération en s.
+	 */
+	public void setDeltaT(double deltaT) {
+		this.deltaT = deltaT;
+	}
+
+	/**
+	 * Cette methode crée un objet ramassable qui, si ramassé, crée un champ magnetique sur un ennemie
+	 */
+	public void creeObjetChamp() {
+		double x = this.LARGEUR_MUR + this.ressortGauche.getLongueurReelle() + (Math.random() * (this.longueurMonde - 2 * this.LARGEUR_MUR - this.ressortDroit.getLongueurReelle() - this.ressortGauche.getLongueurReelle() - 3) );
+		double y = this.LARGEUR_MUR;
+		this.objetMagnetique = new Rectangle2D.Double(x, y, 3, 3);
+		this.isMagneticObjetIn = true;
+
+	}
+
+	/**
+	 * Methode retournant la valeur boolean correspondant au fait si l'objet magnetique est apparue
+	 * @return = true si l'objet est apparue, false sinon.
+	 */
+	public boolean isMagneticObjetIn() {
+		return this.isMagneticObjetIn;
+	}
+
+}

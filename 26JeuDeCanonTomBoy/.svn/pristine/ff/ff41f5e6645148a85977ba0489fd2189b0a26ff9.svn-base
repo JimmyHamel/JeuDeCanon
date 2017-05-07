@@ -1,0 +1,23 @@
+package interfaces;
+import java.util.EventListener;
+/**
+ * Un écouteur personnalisé qui est utilisé dans le cadre de FentreOptions pour que l'application principal puisse savoir ce qu'il fait. 
+ * @author Mitchell Mastromonaco
+ *
+ */
+public interface OptionsToApplicationListener extends EventListener{
+	/**
+	 * 
+	 * @param science
+	 */
+	public void scienceOption(boolean science);
+	/**
+	 * 
+	 * @param euler
+	 * @param eulerI
+	 * @param rk4
+	 */
+	public void calculOption(boolean euler, boolean eulerI, boolean rk4);
+
+}
+	

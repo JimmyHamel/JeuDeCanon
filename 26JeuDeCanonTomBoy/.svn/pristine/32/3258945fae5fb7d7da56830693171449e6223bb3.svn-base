@@ -1,0 +1,144 @@
+package fenetres;
+
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextPane;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.EmptyBorder;
+
+public class FenetreInstruction extends JFrame {
+
+/**
+ * Fenetre secondaire affichant les diverses informations a propos de l'application
+ * Elle explique les divers concepts scientifiques de notre application, elle contient un guide d'utilisation et des suggestions de tests
+ * @author Mitchell Mastromonaco
+ * Date de création : 8 février 2016
+ */
+	private static final long serialVersionUID = -1669223996219433294L;
+	private JPanel contentPane;
+
+/**
+ * Constructeur de la classe
+ */
+	public FenetreInstruction() {
+		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		setTitle("Instructions");
+
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent we) {
+				setVisible(false);
+			}
+		});
+		
+		setBounds(100, 100, 675, 568);
+		contentPane = new JPanel();
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
+		contentPane.setLayout(null);
+		
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+		tabbedPane.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		tabbedPane.setBounds(10, 11, 639, 507);
+		contentPane.add(tabbedPane);
+		
+		JPanel pnlInstructions = new JPanel();
+		tabbedPane.addTab("Instructions", null, pnlInstructions, null);
+		pnlInstructions.setLayout(null);
+		
+		JScrollPane scrollInstructions = new JScrollPane();
+		scrollInstructions.setBounds(0, 0, 630, 475);
+		pnlInstructions.add(scrollInstructions);
+		
+		JTextPane txtpnInstructions = new JTextPane();
+		scrollInstructions.setViewportView(txtpnInstructions);
+		txtpnInstructions.setContentType("text/html");
+		txtpnInstructions.setText("<html><b>Guide d’utilisation</b><br>Vu que vous êtes arrivé jusqu’au menu d’aide et d’instructions, vous avez déjà franchi une grosse étape. Bravo! "
+				+ "Maintenant, la première étape à franchir serait de créer un profil. Vous devriez en avoir la capacité. Sur le menu principal, il y a un bouton nommé <i>Création de profils</i>."
+				+ "Vous allez amener votre souris par-dessus ce bouton et enfoncer le clic-gauche. Ensuite, une fenêtre apparaîtra avec trois jolis dessins que nous avons créés et testés sur de multiples candidats"
+				+ "pour voir leur efficacité à ressortir la virilité de quelqu’un. Vous allez choisir un de ces images. Par après, dans la barre dédiée à cet effet, vous allez inscrire le nom de votre profil. "
+				+ "Nous suggérons un nom sans trop de lettres pour que vous puissiez bien le comprendre et sans caractères spéciaux. Finalement, appuyez sur le bouton <i>Création</i> pour créer votre profil.<br>"
+				+ "Un profil sauvegarde votre image, votre nom de profil et votre progression dans le jeu dans un fichier intitulé TomBoy qui sera créé sur votre Bureau lors de la première création de profils.<br>"
+				+ "Pour changer de profils ou charger un profil, vous allez dans la barre de tâches dans le menu <i>Actions</i> et vous choisissez l’option désirée.<br>"
+				+ "Vu que vous avez trouvé  le menu d’<i>Aide</i>, nous allons vous montrer l’option <i>Options</i>. Vous cliquez sur cette option et vous verrez apparaître une fenêtre secondaire dans laquelle plusieurs options s’offrent à vous.<br>"
+				+ "Premièrement, plusieurs codes de triche peuvent être utilisé et inscrit dans la zone de texte prévue à cet effet. Pour commencer la triche, vous appuyez sur le bouton <i>Démarrer la triche</i>.<br>"
+				+ "Ensuite, vous avez trois options de méthodes de calcul mises à votre disposition. Le plus complexe et qui admet les calculs les plus exacts est <i>Runge-Kutta d’ordre 4</i>. Après, il y a la méthode d'<i>Euler inversé</i> et finalement, la méthode d'<i>Euler</i>.<br>"
+				+ "Si vous activez le mode scientifique, plusieurs données seront affichées lors de l’activation du jeu. La fenêtre s’agrandira. Les données vous aideront à vérifier la pertinence de vos mouvements tels la vitesse de la balle, la vitesse du char d'assaut, la force magnétique exercée sur la balle et autres.<br>"
+				+ "Finalement, le graphique de position et un graphique de la position de la balle en x et y qui se dessine au fur et à mesure que la balle bouge.<br>"
+				+ "Le <b>but de l’application</b> est de jouer au jeu et de tester la balistique dans des environnements divers tels la Terre et Vénus. Donc, de retour au menu principal, vous appuyez sur le bouton <i>Démarrer</i> pour partir le premier niveau.<br>"
+				+ "Les règles du jeu sont simples. Les flèches directionnelles de droite et de gauche sont utilisées pour aller à droite et à gauche respectivement. Les touches <i>a</i> et <i>d</i> sont utilisés pour faire tourner le canon du char d’assaut. Aussi, vous pourriez cliquer sur l’aire de jeu et ensuite, vous bougez votre souris pour tourner le canon. Pour tirer la balle, vous cliquez sur la barre d’espace. "
+				+ "Vous pouvez cliquer sur le bouton <i>Échap</i> pour détruire la balle ou cliquez dessus. Un objet apparaît aléatoirement au ras-du-sol qui peut être ramassé pour activer le magnétisme sur un ennemi au hasard.<br>"
+				+ "La manière de battre un niveau et de procéder au prochain est de tuer tous les ennemis qui apparaîssent sur l'écran. Vous perdez en vous faisant toucher par n’importe quel objet ennemi incluant leurs corps et leurs balles. "
+				+ "Nous vous progresserons à travers les niveaux et nous vous tiendrons la main pour que vous puissiez gagner.<br>"
+				+ "Dans le menu <i>Actions</i>, vous avez trois nouvelles actions à votre disponibilité : <i>Recommencer</i>, <i>Quitter</i> et revenir au menu et <i>Pause</i>. Nous croyons que vous êtes capable de déduire leur utilité.</html>");
+		
+		JPanel pnlScience = new JPanel();
+		tabbedPane.addTab("Concepts scientifiques", null, pnlScience, null);
+		pnlScience.setLayout(null);
+		
+		JScrollPane scrollScience = new JScrollPane();
+		scrollScience.setBounds(0, 0, 630, 475);
+		pnlScience.add(scrollScience);
+		
+		JTextPane txtpnConceptsscience = new JTextPane();
+		scrollScience.setViewportView(txtpnConceptsscience);
+		txtpnConceptsscience.setContentType("text/html");
+		txtpnConceptsscience.setText("<html><b>Concepts scientifiques<br><br>Résistance de l’air avec chute</b><br>"
+				+ "Nous avons intégré dans le programme une balistique pour la balle que tire le char d’assaut qui est géré par l’équation suivante:<br>"
+				+ "<b><i>R</i> = (0.5 <i>C<sub>x</sub>&rho;Sv<sup>2</sup></i>) / <i>m</i> + <i>g</i></b><br>"
+				+ "Où <i>R</i> est l’accélération exercée sur la balle (en m/s<sup>2</sup>), <i>C<sub>x</sub></i> est le coefficient de frottement aérodynamique, <i>&rho;</i> est la masse volumique de l’air (en kg/m<sup>3</sup>), "
+				+ "<i>S</i> est la surface de contact du projectile (en m<sup>2</sup>), <i>v</i> est la vitesse du projectile (en m/s), <i>m</i> est la masse du projectile (en kg) et <i>g</i> est la pesanteur (en m/s<sup>2</sup>).<br><br>"
+				+ "Les méthodes de calcul sont utilisées pour calculer toutes les accélérations dans l’application incluant le déplacement du char d’assaut et de la balle. Ce ne sont pas des formules, mais des manières de calculer les valeurs d'accélération, de vitesse et de position.<br>"
+				+ "<br><b>Méthode de calcul d’Euler</b><br>"
+				+ "La méthode de calcul d’Euler est la plus simple des trois méthodes de calcul. Elle calcule l’accélération  en fonction de la position initiale, la vitesse initiale et le temps initial "
+				+ "pour ensuite calculer la position finale, la vitesse finale et le temps final avec ces valeurs et dans cet ordre.<br>"
+				+ "<br><b>Méthode de calcul d’Euler inversé</b><br>"
+				+ "La méthode de calcul d’Euler inversé change légèrement l’ordre du calcul de la méthode d’Euler simple. "
+				+ "Elle calcule l’accélération en fonction de la position initiale, la vitesse initiale et le temps initial pour ensuite calculer la vitesse finale, la position finale et le temps final. "
+				+ "L’utilité de cette méthode est que la vitesse finale est utilisée dans le calcul de la position finale, améliorant le degré de précision.<br>"
+				+ "<br><b>Méthode de calcul de Runge-Kutta d’ordre 4</b><br>"
+				+ "La méthode de calcul de Runge-Kutta d’ordre 4 utilise la méthode de calcul d’Euler à trois reprises pour calculer des valeurs intermédiaires de la position, de l’accélération et de la vitesse "
+				+ "pour ensuite calculer la valeur finale de la positon et de la vitesse à l’aide d’une proportion des valeurs trouvées précédemment.<br>"
+				+ "<br><b>Magnétisme</b><br>"
+				+ "Dans l’application, les ennemis émettent aléatoirement des ondes électromagnétiques. Ces ondes électromagnétiques sont considérées comme provenant d’une TRIUC (Tige Rectiligne Infini Uniforme parcouru par un Courant) qui a comme centre l’ennemi "
+				+ "et qui sort de l’écran. Cette tige produit un champ magnétique qui tourne autour de l’ennemi et qui n’affecte pas l’ennemi en tant que tel. Deux formules sont utilisées à ce dessein:<br>"
+				+ "<b><i>B</i> = (<i>&mu;I</i>)/(2<i>&mu;R</i>)</b><br>"
+				+ "Où <i>B</i> est le champ magnétique (en T), <i>I</i> est le courant électrique (en A), <i>R</i> est la distance entre un point et le TRIUC (en m) et <i>&mu;</i> est la constante magnétique (en N s<sup>2</sup>/C<sup>2</sup>).<br>"
+				+ "<b><i>F<sub>m</sub></i> = <i>qvBj</i></b><br>"
+				+ "Où <i>F<sub>m</sub></i> est le vecteur de force magnétique(en N), <i>q</i> est la charge magnétique de la TRIUC (en C), <i>v</i> est la vitesse de l’objet qui se dirige vers la TRIUC (en m/s), <i>B</i> est le champ magnétique (en T) et <i>j</i> est le vecteur unitaire en y. <br>"
+				+ "<br><b>Ressorts</b><br>"
+				+ "Il existe deux ressorts dans l’application qui applique des MHS (Mouvements Harmoniques Simples) lorsque le char d’assaut y touche. La formule est :<br>"
+				+ "<b><i>v</i> = <i>A&omega;</i>cos(<i>&omega;t</i> + <i>&Phi;</i>)</b><br>"
+				+ "Où <i>v</i> est la vitesse du système masse-ressort (en m/s), <i>A</i> est l’amplitude du ressort (en m), <i>&omega;</i> est la fréquence angulaire du système masse-ressort (en rad/s), <i>t</i> est le temps (en s) et <i>&Phi;</i> est la constante de phase (en rad). "
+				+ "Cette formule permet de calculer la vitesse d’un MHS dynamiquement et de la renvoyer de manière logique et scientifique.</html>");
+		JPanel pnlTests = new JPanel();
+		tabbedPane.addTab("Tests suggérés", null, pnlTests, null);
+		pnlTests.setLayout(null);
+		
+		JTextPane txtpnTests = new JTextPane();
+		txtpnTests.setContentType("text/html");
+		txtpnTests.setText("<html><b>Tests suggérés</b><br>"
+				+ "Notre test suggéré est d’appuyer sur le bouton <i>Démarrer</i> et de jouer à travers les niveaux avec le mode scientifique et le graphique de position activé.<br>"
+				+ "Cependant, si vous ne trouvez pas ce test satisfaisant, ");
+		txtpnTests.setBounds(10, 11, 6, 20);
+		pnlTests.add(txtpnTests);
+		
+		JPanel pnlAPropos = new JPanel();
+		tabbedPane.addTab("À propos", null, pnlAPropos, null);
+		pnlAPropos.setLayout(null);
+		
+		JTextPane txtpnAprpos = new JTextPane();
+		txtpnAprpos.setContentType("text/html");
+		txtpnAprpos.setText("<html><b>À propos</b><br>"
+				+ "Nos créateurs sont du nom de Mitchell Mastromonaco et de Jimmy Hamel. Ils ont créé ce projet en l’an 2016 pendant leur session d’hiver au Collège de Maisonneuve "
+				+ "dans le cadre du cours d’Intégration des apprentissages en sciences, infos et maths. </html>");
+		txtpnAprpos.setBounds(0, 0, 630, 335);
+		pnlAPropos.add(txtpnAprpos);
+	}
+}

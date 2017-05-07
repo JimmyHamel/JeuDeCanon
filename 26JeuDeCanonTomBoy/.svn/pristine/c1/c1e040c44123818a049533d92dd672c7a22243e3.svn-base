@@ -1,0 +1,61 @@
+package composantsGraphiques;
+
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+
+
+import javax.swing.JPanel;
+/**
+ * JPanel affichant seulement une ou deux images une a la suite de l'autre
+ * @author Jimmy
+ * Date de création : 1er mars 2016
+ */
+public class ImagePanel extends JPanel{
+	private Image imagePanel1, imagePanel2;
+	
+	/**
+	 * Constructeur de la classe avec une seul image
+	 * @param image = image du panel
+	 */
+	public ImagePanel(Image image){
+		this.imagePanel1 = image;
+	}
+	
+	/**
+	 * Constructeur de la classe image avec deux images
+	 * @param image1 = premiere image du panel
+	 * @param image2 = deuxieme iamge du panel
+	 */
+	public ImagePanel(Image image1, Image image2){
+		this.imagePanel1 = image1;
+		this.imagePanel2 = image2;
+	}
+	
+	/**
+	 * Methode dessinant les images sur le panel
+	 * @param g = composant graphique
+	 */
+	public void paintComponent(Graphics g) {
+		
+		super.paintComponent(g);
+		Graphics2D g2d = (Graphics2D) g;
+		if(this.imagePanel2 == null){
+		this.imagePanel1 = this.imagePanel1.getScaledInstance(getWidth(), getHeight(), Image.SCALE_SMOOTH);
+		g2d.drawImage(this.imagePanel1, 0, 0, getWidth(), getHeight(), null);
+		}else{
+			this.imagePanel1 = this.imagePanel1.getScaledInstance(getWidth(), getHeight() / 2, Image.SCALE_SMOOTH);
+			this.imagePanel2 = this.imagePanel2.getScaledInstance(getWidth(), getHeight() / 2, Image.SCALE_SMOOTH);
+			
+			g2d.drawImage(this.imagePanel1, 0, 0, getWidth(), getHeight()/2, null);
+			g2d.drawImage(this.imagePanel2, 0, getHeight() / 2, getWidth(), getHeight()/2, null);
+
+		}
+		
+	}
+}
+	
+	
+
+
+
